@@ -1,8 +1,9 @@
-import os
+import subprocess
 from flask import Flask, render_template, request
 from PIL import ImageFont, Image, ImageDraw
 
 app = Flask(__name__)
+display_process = None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -19,7 +20,8 @@ def index():
 
                 # If the ppt generation was successful, write new text to file
                 writeFile(entered_text)
-                message = "Success: Sign Updated"
+                restart_display_process(display_process)
+                message = "Success: Sign regenerated, process restarted"
                             
             except Exception as e:
                 message = e # print exception to web
@@ -29,7 +31,6 @@ def index():
     default_text = readFile()
 
     return render_template('index.html', message=message, default_text=default_text)
-
 
 def readFile():
     fs = open("./welcome_banner.txt", "r")
@@ -77,6 +78,14 @@ def generatePPT(message, fontpath):
  
     im.save("banner.ppm")
 
+def start_display_process():
+    return subprocess.Popen(["taskset 3 ../rpi-rgb-led-matrix/examples-api-use/demo --led-rows=32 --led-chain=10 --led-brightness=75 --led-gpio-mapping=adafruit-hat-pwm -m 10 -D 1 ./banner.ppm"], shell=True)
+
+def restart_display_process(process):
+    process.terminate()
+    process.wait()
+    return start_display_process()
 
 if __name__ == '__main__':
+    display_process = start_display_process()
     app.run(debug=True)

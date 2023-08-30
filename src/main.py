@@ -108,8 +108,10 @@ def restart_display_process(restart=True):
     return None
 
 def exit_handler():
+    print("exiting...")
     restart_display_process(False)
 
 if __name__ == '__main__':
+    atexit.register(exit_handler)
     display_process = start_display_process()
     app.run(host="0.0.0.0", debug=True)

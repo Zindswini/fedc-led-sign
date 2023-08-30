@@ -1,6 +1,7 @@
 import subprocess
 import os
 import signal
+import atexit
 from flask import Flask, render_template, request
 from PIL import ImageFont, Image, ImageDraw
 
@@ -63,8 +64,8 @@ def generatePPT(message, fontpath):
         t = text_color_pair[0]
         all_text = all_text + t
 
-    width = int(font.getlength(all_text))
-    #width, ignore = font.getsize(all_text)
+    #width = int(font.getlength(all_text))
+    width = font.getsize(all_text)[0]
 
     im = Image.new("RGB", (width + 30, 32), "black")
     draw = ImageDraw.Draw(im)
@@ -76,13 +77,13 @@ def generatePPT(message, fontpath):
         #print("t=" + t + " " + str(c) + " " + str(x))
         draw.text((x, 0), t, c, font=font)
         #print(font.getlength(t))
-        x = x + int(font.getlength(t))
-        #x = x + font.getsize(t)[0]
+        #x = x + int(font.getlength(t))
+        x = x + font.getsize(t)[0]
  
     im.save("banner.ppm")
 
 def start_display_process():
-    process = subprocess.Popen(["taskset", "3", "../rpi-rgb-led-matrix/examples-api-use/demo", "--led-rows=32", "--led-chain=10", "--led-brightness=75", "--led-gpio-mapping=adafruit-hat-pwm", "-m", "10", "-D", "1", "./banner.ppm"], shell=False, preexec_fn=os.setpgrp)
+    process = subprocess.Popen(["../rpi-rgb-led-matrix/examples-api-use/demo", "--led-rows=32", "--led-chain=10", "--led-brightness=75", "--led-gpio-mapping=adafruit-hat-pwm", "-m", "10", "-D", "1", "./banner.ppm"], shell=False, preexec_fn=os.setpgrp)
     with open("./process_pid.txt", "w") as f:
         f.write(str(process.pid))
     return process
@@ -93,7 +94,7 @@ def get_display_process_pid():
             return int(f.read())
     return None
 
-def restart_display_process():
+def restart_display_process(restart=True):
     old_pid = get_display_process_pid()
     if old_pid:
         try:
@@ -101,8 +102,13 @@ def restart_display_process():
             os.waitpid(old_pid, 0)
         except ProcessLookupError:
             pass  # Process is already terminated
-    new_process = start_display_process()
-    return new_process
+    if(restart):
+        new_process = start_display_process()
+        return new_process
+    return None
+
+def exit_handler():
+    restart_display_process(False)
 
 if __name__ == '__main__':
     display_process = start_display_process()

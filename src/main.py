@@ -106,4 +106,4 @@ def restart_display_process():
 
 if __name__ == '__main__':
     display_process = start_display_process()
-    app.run(debug=True)
+    app.run(host="0.0.0.0", debug=True)

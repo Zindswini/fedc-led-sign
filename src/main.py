@@ -21,7 +21,7 @@ def index():
 
                 # If the ppt generation was successful, write new text to file
                 writeFile(entered_text)
-                restart_display_process(display_process)
+                restart_display_process()
                 message = "Success: Sign regenerated, process restarted"
                             
             except Exception as e:

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 # Make sure C++ build is up to date
-echo "Building matrix code"
-cd rpi-rgb-led-matrix
-make
-cd ..
+#echo "Building matrix code"
+#cd rpi-rgb-led-matrix
+#make
+#cd ..
 
 # Start python server
 python3 ./main.py

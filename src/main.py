@@ -1,9 +1,10 @@
 import subprocess
+import os
+import signal
 from flask import Flask, render_template, request
 from PIL import ImageFont, Image, ImageDraw
 
 app = Flask(__name__)
-display_process = None
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -63,6 +64,7 @@ def generatePPT(message, fontpath):
         all_text = all_text + t
 
     width = int(font.getlength(all_text))
+    #width, ignore = font.getsize(all_text)
 
     im = Image.new("RGB", (width + 30, 32), "black")
     draw = ImageDraw.Draw(im)
@@ -75,16 +77,32 @@ def generatePPT(message, fontpath):
         draw.text((x, 0), t, c, font=font)
         #print(font.getlength(t))
         x = x + int(font.getlength(t))
+        #x = x + font.getsize(t)[0]
  
     im.save("banner.ppm")
 
 def start_display_process():
-    return subprocess.Popen(["taskset 3 ../rpi-rgb-led-matrix/examples-api-use/demo --led-rows=32 --led-chain=10 --led-brightness=75 --led-gpio-mapping=adafruit-hat-pwm -m 10 -D 1 ./banner.ppm"], shell=True)
+    process = subprocess.Popen(["taskset", "3", "../rpi-rgb-led-matrix/examples-api-use/demo", "--led-rows=32", "--led-chain=10", "--led-brightness=75", "--led-gpio-mapping=adafruit-hat-pwm", "-m", "10", "-D", "1", "./banner.ppm"], shell=False, preexec_fn=os.setpgrp)
+    with open("./process_pid.txt", "w") as f:
+        f.write(str(process.pid))
+    return process
 
-def restart_display_process(process):
-    process.terminate()
-    process.wait()
-    return start_display_process()
+def get_display_process_pid():
+    if os.path.exists("./process_pid.txt"):
+        with open("./process_pid.txt", "r") as f:
+            return int(f.read())
+    return None
+
+def restart_display_process():
+    old_pid = get_display_process_pid()
+    if old_pid:
+        try:
+            os.killpg(old_pid, signal.SIGTERM)
+            os.waitpid(old_pid, 0)
+        except ProcessLookupError:
+            pass  # Process is already terminated
+    new_process = start_display_process()
+    return new_process
 
 if __name__ == '__main__':
     display_process = start_display_process()
